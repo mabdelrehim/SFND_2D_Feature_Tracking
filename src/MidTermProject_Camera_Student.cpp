@@ -62,7 +62,16 @@ int main(int argc, const char *argv[])
         // push image into data frame buffer
         DataFrame frame;
         frame.cameraImg = imgGray;
-        dataBuffer.push_back(frame);
+        
+        // dataBuffer.push_back(frame);
+        if  (dataBuffer.size() < dataBufferSize) {  
+            dataBuffer.push_back(frame);
+            cout << "LOAD IMAGE INTO BUFFER done" << endl;
+        } else {
+            dataBuffer.erase(dataBuffer.begin());
+            dataBuffer.push_back(frame);
+            cout << "REPLACE IMAGE IN BUFFER done" << endl;
+        }
 
         //// EOF STUDENT ASSIGNMENT
         cout << "#1 : LOAD IMAGE INTO BUFFER done" << endl;
@@ -81,9 +90,13 @@ int main(int argc, const char *argv[])
         {
             detKeypointsShiTomasi(keypoints, imgGray, false);
         }
-        else
+        else if (detectorType.compare("HARRIS") == 0)
         {
-            //...
+            detKeypointsHarris(keypoints, imgGray, false);
+        }
+        else 
+        {
+            detKeypointsModern(keypoints, imgGray, detectorType, false);
         }
         //// EOF STUDENT ASSIGNMENT
 
@@ -93,9 +106,22 @@ int main(int argc, const char *argv[])
         // only keep keypoints on the preceding vehicle
         bool bFocusOnVehicle = true;
         cv::Rect vehicleRect(535, 180, 180, 150);
+        
+        vector<cv::KeyPoint> keep;
         if (bFocusOnVehicle)
         {
-            // ...
+             for(auto keypoint = keypoints.begin(); keypoint != keypoints.end(); ++keypoint)
+             {
+                 if (vehicleRect.contains(keypoint->pt))
+                 {  
+                    cv::KeyPoint newKeyPoint;
+                    newKeyPoint.pt = cv::Point2f(keypoint->pt);
+                    newKeyPoint.size = 1;
+                    keep.push_back(newKeyPoint);
+                 }
+             }
+            keypoints = keep;
+            cout << "ROI has " << keypoints.size()<<" keypoints"<<endl;
         }
 
         //// EOF STUDENT ASSIGNMENT
@@ -140,9 +166,9 @@ int main(int argc, const char *argv[])
             /* MATCH KEYPOINT DESCRIPTORS */
 
             vector<cv::DMatch> matches;
-            string matcherType = "MAT_BF";        // MAT_BF, MAT_FLANN
+            string matcherType = "MAT_FLANN";        // MAT_BF, MAT_FLANN
             string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
-            string selectorType = "SEL_NN";       // SEL_NN, SEL_KNN
+            string selectorType = "SEL_KNN";       // SEL_NN, SEL_KNN
 
             //// STUDENT ASSIGNMENT
             //// TASK MP.5 -> add FLANN matching in file matching2D.cpp
